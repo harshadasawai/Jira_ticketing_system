@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Customize scroll bar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #4b6eaf;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gray-200 flex justify-center items-center min-h-screen">
+
+    <div class="w-full max-w-md bg-white rounded-lg shadow-lg">
+        <div class="p-4 flex flex-col h-full">
+            <!-- Chat Container -->
+            <div class="flex-1 overflow-y-auto mb-4" id="chat-container">
+                <!-- Chat messages will appear here -->
+            </div>
+            
+            <!-- Input Section -->
+            <div class="flex">
+                <input type="text" id="user-message" class="w-full p-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Type your message..." />
+                <button id="send-btn" class="px-4 py-3 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700 focus:outline-none">
+                    Send
+                </button>
+                <!-- Speech-to-Text Button -->
+                <button id="voice-btn" class="px-4 py-3 bg-blue-600 text-white rounded-r-lg ml-2 hover:bg-blue-700 focus:outline-none">
+                    🎤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationHistory = [];  // Store the conversation history
+
+        // Function to send the user's message to the server and update the chat UI
+        document.getElementById('send-btn').addEventListener('click', async function () {
+            const userMessage = document.getElementById('user-message').value;
+            if (userMessage.trim() === "") return;
+
+            await processUserMessage(userMessage);
+        });
+
+        // Speech Recognition function
+        document.getElementById('voice-btn').addEventListener('click', async function () {
+            try {
+                const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                recognition.start();
+
+                recognition.onresult = async (event) => {
+                    const speechResult = event.results[0][0].transcript;
+                    appendMessage(speechResult, 'user');
+                    document.getElementById('user-message').value = ''; // Clear input field
+                    conversationHistory.push({ sender: 'user', message: speechResult });
+
+                    // Send the recognized speech text to the backend
+                    const response = await sendMessageToBackend(speechResult);
+                    appendMessage(response, 'bot');
+                    conversationHistory.push({ sender: 'bot', message: response });
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    alert("Could not process the audio input. Please try again.");
+                };
+
+            } catch (error) {
+                console.error('Speech recognition not supported in this browser:', error);
+                alert("Your browser does not support speech recognition.");
+            }
+        });
+
+        // Helper function to process and send user message to backend
+        async function processUserMessage(userMessage) {
+            appendMessage(userMessage, 'user');
+            document.getElementById('user-message').value = ''; // Clear input field
+            conversationHistory.push({ sender: 'user', message: userMessage });
+
+            // Send message to backend
+            const response = await sendMessageToBackend(userMessage);
+            appendMessage(response, 'bot');
+
+            // Add bot's response to the conversation history
+            conversationHistory.push({ sender: 'bot', message: response });
+        }
+
+        // Function to append messages to the chat container
+        function appendMessage(message, sender) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('mb-3', 'p-3', 'rounded', sender === 'user' ? 'bg-indigo-100' : 'bg-gray-200');
+            messageDiv.classList.add(sender === 'user' ? 'self-end' : 'self-start');
+
+            // Apply formatting: replace **<content>** with <strong>content</strong>
+            const formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Insert formatted HTML content
+            messageDiv.innerHTML = formattedMessage;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight; // Auto scroll to bottom
+        }
+
+        // Function to send message to the backend API and get the response
+        async function sendMessageToBackend(message) {
+            try {
+                const response = await fetch('http://localhost:5000/bot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: message,
+                        isNew: conversationHistory.length === 0,  // If it's the first message, set isNew to true
+                        conversationHistory: conversationHistory  // Send conversation history if available
+                    })
+                });
+                const data = await response.json();
+                return data.response || "Sorry, I couldn't understand that.";
+            } catch (error) {
+                console.error('Error sending message:', error);
+                return "There was an error processing your request.";
+            }
+        }
+    </script>
+
+</body>
+</html>
