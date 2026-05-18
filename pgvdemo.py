@@ -64,10 +64,10 @@ safety_settings = [
 chat = None
 
 # Jira credentials
-JIRA_API_TOKEN = "ATATT3xFfGF0C-1pgO_Txi3xnprWHyMIRW9XP1Z5Cq8IgWgM8KL973Kds7aNidcn3CQ2nkYOLfpIy8zroG6xKjaOl9i8FURDRNiWfm0-tirpyL2tfkeuPwP_C_r9PR7L6AjJ0_a5BGAMmvRwmywEeAR57q6iFonAH4R9JQXo0DuY9FK54oSrs7Y=B14D3A92"
-JIRA_EMAIL = "ajinkya.matre23@vit.edu"
-JIRA_BASE_URL = "https://vit-team-azyltavp.atlassian.net"
-JIRA_SEARCH_ENDPOINT = f"{JIRA_BASE_URL}/rest/api/3/search"
+JIRA_API_TOKEN = # API token
+JIRA_EMAIL = # your Email 
+JIRA_BASE_URL = # URL
+JIRA_SEARCH_ENDPOINT = 
 
 auth = HTTPBasicAuth(JIRA_EMAIL, JIRA_API_TOKEN)
 headers = {
